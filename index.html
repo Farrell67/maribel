@@ -340,6 +340,8 @@ const MONO = '"SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace';
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr;
+  // match the visible viewport exactly (100vh is taller than visible on mobile browsers)
+  canvas.style.width = innerWidth + "px"; canvas.style.height = innerHeight + "px";
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   fs = Math.max(8, Math.min(16, Math.floor(innerWidth / 70)));
   ctx.font = `${fs}px "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace`;
@@ -348,7 +350,7 @@ function resize() {
   cols = Math.max(20, Math.floor(innerWidth / cw));
   // message gets its own larger font, independent of the ASCII grid
   msgFs = Math.max(20, Math.min(44, Math.floor(innerWidth / 12)));
-  msgH = Math.ceil(msgFs * 2);
+  msgH = Math.ceil(msgFs * 1.8) + 28;   // text height + top padding for notch/status bar
   rows = Math.max(12, Math.floor((innerHeight - msgH) / lh));
 }
 addEventListener("resize", resize);
@@ -374,7 +376,7 @@ function frame(now) {
       if (ch === " ") continue;
       const col = colors[r][c];
       if (col !== lastColor) { ctx.fillStyle = css256(col); lastColor = col; }
-      ctx.fillText(ch, (c + 0.5) * cw, (r + 0.5) * lh);
+      ctx.fillText(ch, (c + 0.5) * cw, msgH + (r + 0.5) * lh);
     }
   }
   // big, readable message at the bottom
@@ -384,7 +386,7 @@ function frame(now) {
   const total = mw * chars2.length;
   const x0 = (innerWidth - total) / 2;
   const shift = Math.floor(((now - startT) / 1000) * 6);
-  const my = innerHeight - msgH / 2;
+  const my = 28 + msgFs * 0.9;
   chars2.forEach((ch, i) => {
     ctx.fillStyle = css256(MSG_COLORS[(i + shift) % MSG_COLORS.length]);
     ctx.fillText(ch, x0 + (i + 0.5) * mw, my);
