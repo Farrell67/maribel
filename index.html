@@ -17,14 +17,12 @@ const MESSAGE = "for maribel (:";
 const HINT = "";
 const PIVOT_Y = 0.2;
 
-const WHITE = [244, 248, 251, 254, 255, 231];
-const PINK = [125, 162, 168, 205, 211, 218, 225];
-const RED = [52, 88, 124, 160, 196, 203];
-const PURPLE = [54, 91, 97, 134, 140, 183];
-const YELLOW = [136, 178, 214, 220, 226, 229];
-const ORANGE = [130, 166, 202, 208, 214, 216];
-const GOLD_CENTER = [94, 136, 178, 214, 220];
-const DARK_CENTER = [52, 58, 94, 130, 136];
+// all flowers are black (near-black grays so the shading stays visible on the black background)
+const BLACK_PETAL = [234, 236, 238, 240, 242, 245];
+const BLACK_CENTER = [232, 234, 236, 238, 240];
+const WHITE = BLACK_PETAL, PINK = BLACK_PETAL, RED = BLACK_PETAL;
+const PURPLE = BLACK_PETAL, YELLOW = BLACK_PETAL, ORANGE = BLACK_PETAL;
+const GOLD_CENTER = BLACK_CENTER, DARK_CENTER = BLACK_CENTER;
 const GREENS = [22, 28, 28, 34, 35, 71, 77, 114];
 const PAPER = [101, 144, 187, 223, 230, 231];
 const RIBBON = [88, 125, 161, 197, 204, 211];
@@ -230,7 +228,7 @@ function render(scene, t, cols, rows, hearts) {
   const colors = Array.from({ length: rows }, () => new Array(cols).fill(0));
   const zbuf = Array.from({ length: rows }, () => new Float64Array(cols).fill(-1e9));
 
-  const viewRows = rows - 2;
+  const viewRows = rows;
   const scale = Math.max(1, Math.min((viewRows - 2) / 1.45, (cols - 2) / 2.7));
   const sxScale = scale * 2;
   const cx = cols / 2, cy = 1 + 0.78 * scale;
@@ -330,24 +328,14 @@ function render(scene, t, cols, rows, hearts) {
     else if (tw > 0) plot(col, row, zt, "·", 218);
   }
 
-  const mrow = rows - 2;
-  const start = Math.max(0, Math.floor((cols - MESSAGE.length) / 2));
-  const shift = Math.floor(t * 6);
-  [...MESSAGE].forEach((ch, i) => {
-    if (start + i < cols) { chars[mrow][start + i] = ch; colors[mrow][start + i] = MSG_COLORS[(i + shift) % MSG_COLORS.length]; }
-  });
-  const hstart = Math.max(0, Math.floor((cols - HINT.length) / 2));
-  [...HINT].forEach((ch, i) => {
-    if (hstart + i < cols) { chars[rows - 1][hstart + i] = ch; colors[rows - 1][hstart + i] = 238; }
-  });
-
   return { chars, colors };
 }
 
 // ---- canvas driver ----
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
-let fs, cw, lh, cols, rows;
+let fs, cw, lh, cols, rows, msgFs, msgH;
+const MONO = '"SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace';
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
@@ -358,7 +346,10 @@ function resize() {
   cw = ctx.measureText("M").width;
   lh = cw * 2;                       // terminal-like 1:2 cell
   cols = Math.max(20, Math.floor(innerWidth / cw));
-  rows = Math.max(12, Math.floor(innerHeight / lh));
+  // message gets its own larger font, independent of the ASCII grid
+  msgFs = Math.max(20, Math.min(44, Math.floor(innerWidth / 12)));
+  msgH = Math.ceil(msgFs * 2);
+  rows = Math.max(12, Math.floor((innerHeight - msgH) / lh));
 }
 addEventListener("resize", resize);
 resize();
@@ -386,6 +377,19 @@ function frame(now) {
       ctx.fillText(ch, (c + 0.5) * cw, (r + 0.5) * lh);
     }
   }
+  // big, readable message at the bottom
+  ctx.font = `bold ${msgFs}px ${MONO}`;
+  const mw = ctx.measureText("M").width;
+  const chars2 = [...MESSAGE];
+  const total = mw * chars2.length;
+  const x0 = (innerWidth - total) / 2;
+  const shift = Math.floor(((now - startT) / 1000) * 6);
+  const my = innerHeight - msgH / 2;
+  chars2.forEach((ch, i) => {
+    ctx.fillStyle = css256(MSG_COLORS[(i + shift) % MSG_COLORS.length]);
+    ctx.fillText(ch, x0 + (i + 0.5) * mw, my);
+  });
+  ctx.font = `${fs}px ${MONO}`;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
